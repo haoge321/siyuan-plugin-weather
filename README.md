@@ -1,5 +1,7 @@
 # SiYuan Weather
 
+![preview](preview.png)
+
 SiYuan Weather shows real-time weather in the SiYuan status bar.
 
 ## Features
@@ -23,6 +25,10 @@ The city selector supports districts and higher-level administrative areas inclu
 
 The API key and selected city are stored in SiYuan plugin data. Weather requests are sent directly to the Amap weather service using the configured key.
 
+## Feedback
+
+If you run into problems or have feature suggestions, please [open an issue](https://github.com/haoge321/siyuan-plugin-weather/issues).
+
 ## Development
 
 ```powershell
@@ -32,3 +38,7 @@ npm run dev
 
 Build output is written to `weather`, which contains the complete plugin package.
 After `npm run build`, the package is also copied automatically to the configured SiYuan plugin directory in `webpack.config.js` when that directory exists.
+
+## License
+
+[MIT](LICENSE)
