@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build output
+weather/
+dist/
+
+# Local docs and workspace data
+doc/
+.workbuddy/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Release package
+*.zip
