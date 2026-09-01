@@ -18,6 +18,7 @@ class CopyPluginFiles {
         "CHANGELOG.md",
         "icon.png",
         "preview.png",
+        "status-preview.png",
         "index.css"
       ].forEach((fileName) => {
         fs.copyFileSync(
