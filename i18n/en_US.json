@@ -1,7 +1,7 @@
 {
   "topbar.settings": "Weather settings",
   "settings.apiKey.title": "Amap API Key",
-  "settings.apiKey.description": "The Amap Web Service API key used for weather requests.",
+  "settings.apiKey.description": "The Amap Web Service API key used for weather requests. <a href=\"https://www.showdoc.com.cn/siyuanPluginWeather/11559060627523622\" target=\"_blank\" rel=\"noopener noreferrer\">View guide</a>",
   "settings.apiKey.placeholder": "Enter Amap Web Service API Key",
   "settings.city.title": "Weather city",
   "settings.city.description": "Choose a district or a higher-level area. Towns, streets, and smaller areas are not supported.",

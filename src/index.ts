@@ -307,7 +307,7 @@ export default class WeatherPlugin extends Plugin {
       direction: "column",
       description: this.t(
         "settings.apiKey.description",
-        "The Amap Web Service API key used for weather requests."
+        'The Amap Web Service API key used for weather requests. <a href="https://www.showdoc.com.cn/siyuanPluginWeather/11559060627523622" target="_blank" rel="noopener noreferrer">View guide</a>'
       ),
       actionElement: this.keyInput
     });

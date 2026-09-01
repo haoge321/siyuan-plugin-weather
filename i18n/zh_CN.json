@@ -1,7 +1,7 @@
 {
   "topbar.settings": "天气设置",
   "settings.apiKey.title": "高德 API Key",
-  "settings.apiKey.description": "高德地图 Web 服务 API 的 key，保存后会用于天气请求。",
+  "settings.apiKey.description": "高德地图 Web 服务 API 的 key，保存后会用于天气请求。<a href=\"https://www.showdoc.com.cn/siyuanPluginWeather/11559060627523622\" target=\"_blank\" rel=\"noopener noreferrer\">获取教程</a>",
   "settings.apiKey.placeholder": "请输入高德 Web 服务 API Key",
   "settings.city.title": "天气城市",
   "settings.city.description": "请选择区县级及以上地区，不支持乡镇、街道及以下区域。",

@@ -1,7 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const pluginOutputPath = path.resolve(__dirname, "weather");
+const pluginManifest = require("./plugin.json");
+const pluginName = pluginManifest.name;
+const pluginOutputPath = path.resolve(__dirname, pluginName);
 // Optional: set SIYUAN_PLUGINS_PATH to auto-deploy the build to your local SiYuan
 const siyuanPluginsPath = process.env.SIYUAN_PLUGINS_PATH || "";
 
@@ -39,7 +41,7 @@ class CopyPluginFiles {
         return;
       }
 
-      const siyuanPluginOutputPath = path.join(siyuanPluginsPath, "weather");
+      const siyuanPluginOutputPath = path.join(siyuanPluginsPath, pluginName);
       fs.cpSync(pluginOutputPath, siyuanPluginOutputPath, {
         recursive: true,
         force: true

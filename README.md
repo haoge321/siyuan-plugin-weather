@@ -4,6 +4,8 @@
 
 SiYuan Weather shows real-time weather in the SiYuan status bar.
 
+> Need an Amap API Key? [View the setup guide](https://www.showdoc.com.cn/siyuanPluginWeather/11559060627523622)
+
 ## Features
 
 - Search and select supported cities and districts
