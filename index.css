@@ -1,1 +1,5 @@
 /* Status bar weather plugin styles */
+
+#weather-status.b3-tooltips::after {
+  text-align: left;
+}
