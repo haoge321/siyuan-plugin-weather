@@ -2,7 +2,7 @@
   "name": "siyuan-plugin-weather",
   "author": "haoge321",
   "url": "https://github.com/haoge321/siyuan-plugin-weather",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "3.0.0",
   "disabledInPublish": false,
   "backends": [

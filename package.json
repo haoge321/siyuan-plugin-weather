@@ -1,6 +1,6 @@
 {
   "name": "siyuan-plugin-weather",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A SiYuan plugin that shows real-time weather in the status bar, powered by the Amap weather API.",
   "author": "haoge321",
   "license": "MIT",
