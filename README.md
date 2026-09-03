@@ -2,7 +2,7 @@
 
 ![Status bar weather preview](status-preview.png)
 
-SiYuan Weather shows real-time weather in the SiYuan status bar.
+SiYuan Weather shows real-time weather with hand-drawn icons in the SiYuan status bar, and inserts the current weather into your notes with one slash command.
 
 > Need an Amap API Key? [View the setup guide](https://www.showdoc.com.cn/siyuanPluginWeather/11559060627523622)
 
@@ -10,11 +10,20 @@ Hover over the status bar weather to view temperature, humidity, wind direction,
 
 ## Features
 
+- Hand-drawn weather icon, weather text, and temperature in the status bar (icon can be turned off in settings)
+- Slash command `/天气` (or `weather`): insert icon + weather + temperature into the document
+- Slash command `/天气（详细）`: additionally inserts humidity, wind direction, and wind power
+- Icons inserted into documents are saved to the assets folder, so they sync with your notes across devices
 - Search and select supported cities and districts
-- Display current weather, temperature, humidity, wind direction, and wind power
 - Automatically refresh every 5, 10, 30, or 60 minutes
 - Click the status bar weather to refresh and view details
 - Use an Amap Web Service API key configured by the user
+
+## Insert weather into your notes
+
+Type `/天气` in the editor to insert the current weather, or choose the detailed variant to include humidity and wind:
+
+![Insert weather into document](doc-insert-preview.png)
 
 ## Setup
 

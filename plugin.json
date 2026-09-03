@@ -2,7 +2,7 @@
   "name": "siyuan-plugin-weather",
   "author": "haoge321",
   "url": "https://github.com/haoge321/siyuan-plugin-weather",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "minAppVersion": "3.0.0",
   "disabledInPublish": false,
   "backends": [
@@ -19,9 +19,9 @@
     "zh_CN": "状态栏天气"
   },
   "description": {
-    "default": "Show real-time weather in the SiYuan status bar.",
-    "en_US": "Show real-time weather in the SiYuan status bar.",
-    "zh_CN": "在思源底部状态栏显示实时天气。"
+    "default": "Real-time weather with hand-drawn icons in the status bar, one-slash insert into notes.",
+    "en_US": "Real-time weather with hand-drawn icons in the status bar, one-slash insert into notes.",
+    "zh_CN": "状态栏实时天气与手绘图标，一键插入当前天气到文档，写日记必备。"
   },
   "readme": {
     "default": "README.md",
@@ -36,6 +36,9 @@
     "status bar",
     "状态栏",
     "real-time weather",
-    "实时天气"
+    "实时天气",
+    "diary",
+    "日记",
+    "天气图标"
   ]
 }

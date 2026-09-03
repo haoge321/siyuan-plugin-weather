@@ -19,6 +19,7 @@ class CopyPluginFiles {
         "icon.png",
         "preview.png",
         "status-preview.png",
+        "doc-insert-preview.png",
         "index.css"
       ].forEach((fileName) => {
         fs.copyFileSync(
@@ -30,6 +31,14 @@ class CopyPluginFiles {
       const i18nSourcePath = path.resolve(__dirname, "i18n");
       if (fs.existsSync(i18nSourcePath)) {
         fs.cpSync(i18nSourcePath, path.resolve(pluginOutputPath, "i18n"), {
+          recursive: true,
+          force: true
+        });
+      }
+
+      const iconsSourcePath = path.resolve(__dirname, "icons");
+      if (fs.existsSync(iconsSourcePath)) {
+        fs.cpSync(iconsSourcePath, path.resolve(pluginOutputPath, "icons"), {
           recursive: true,
           force: true
         });

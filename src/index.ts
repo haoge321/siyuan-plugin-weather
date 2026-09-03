@@ -1,8 +1,9 @@
-import { Plugin, Setting, showMessage } from "siyuan";
+import { fetchSyncPost, Plugin, Protyle, Setting, showMessage } from "siyuan";
 import amapCities from "./data/amap-cities.json";
 
 const STATUS_ITEM_ID = "weather-status";
 const STORAGE_NAME = "weather-config";
+const ICON_ASSET_STORAGE = "weather-icon-assets";
 const WEATHER_API_ENDPOINT =
   "https://restapi.amap.com/v3/weather/weatherInfo";
 const REFRESH_INTERVAL_OPTIONS = [5, 10, 30, 60];
@@ -12,7 +13,85 @@ const SETTING_CONTROL_WIDTH = "260px";
 const DEFAULT_CONFIG: WeatherConfig = {
   key: "",
   city: "",
-  intervalMinutes: 10
+  intervalMinutes: 10,
+  showIcon: true
+};
+
+// 高德天气文字 -> icons/ 下的图标文件名（不含扩展名）
+// 归并规则见 doc/天气枚举图标映射表.md，查不到时回退 unknown
+const WEATHER_ICON_MAP: Record<string, string> = {
+  晴: "sunny",
+  少云: "few-clouds",
+  晴间多云: "partly-cloudy",
+  多云: "cloudy",
+  阴: "overcast",
+  有风: "wind",
+  平静: "wind",
+  微风: "wind",
+  和风: "wind",
+  清风: "wind",
+  "强风/劲风": "wind",
+  强风: "wind",
+  劲风: "wind",
+  疾风: "wind",
+  大风: "wind",
+  烈风: "wind",
+  风暴: "wind",
+  狂爆风: "wind",
+  飓风: "wind",
+  热带风暴: "wind",
+  霾: "haze",
+  中度霾: "haze",
+  重度霾: "haze",
+  严重霾: "haze",
+  阵雨: "shower",
+  强阵雨: "shower",
+  雷阵雨: "thunderstorm",
+  强雷阵雨: "thunderstorm",
+  雷阵雨并伴有冰雹: "hail",
+  小雨: "light-rain",
+  中雨: "moderate-rain",
+  雨: "moderate-rain",
+  "小雨-中雨": "moderate-rain",
+  大雨: "heavy-rain",
+  "中雨-大雨": "heavy-rain",
+  暴雨: "rainstorm",
+  大暴雨: "rainstorm",
+  特大暴雨: "rainstorm",
+  极端降雨: "rainstorm",
+  "大雨-暴雨": "rainstorm",
+  "暴雨-大暴雨": "rainstorm",
+  "大暴雨-特大暴雨": "rainstorm",
+  "毛毛雨/细雨": "drizzle",
+  毛毛雨: "drizzle",
+  细雨: "drizzle",
+  雨雪天气: "sleet",
+  雨夹雪: "sleet",
+  阵雨夹雪: "sleet",
+  冻雨: "freezing-rain",
+  阵雪: "snow-shower",
+  小雪: "light-snow",
+  中雪: "snow",
+  雪: "snow",
+  "小雪-中雪": "snow",
+  大雪: "heavy-snow",
+  "中雪-大雪": "heavy-snow",
+  暴雪: "snowstorm",
+  "大雪-暴雪": "snowstorm",
+  浮尘: "dust",
+  扬沙: "dust",
+  沙尘暴: "sandstorm",
+  强沙尘暴: "sandstorm",
+  龙卷风: "tornado",
+  雾: "fog",
+  浓雾: "fog",
+  强浓雾: "fog",
+  轻雾: "fog",
+  大雾: "fog",
+  特强浓雾: "fog",
+  热: "hot",
+  冷: "cold",
+  未知: "unknown"
 };
 
 type AmapCityRecord = [name: string, adcode: string, parentAdcode: string | null];
@@ -28,6 +107,7 @@ interface WeatherConfig {
   key: string;
   city: string;
   intervalMinutes: number;
+  showIcon: boolean;
 }
 
 interface AmapWeatherResponse {
@@ -40,6 +120,14 @@ interface AmapWeatherResponse {
     winddirection?: string;
     windpower?: string;
   }>;
+}
+
+interface WeatherSnapshot {
+  weather: string;
+  temperature: string;
+  humidity: string;
+  winddirection: string;
+  windpower: string;
 }
 
 function createCities(records: AmapCityRecord[]): AmapCity[] {
@@ -88,12 +176,16 @@ export default class WeatherPlugin extends Plugin {
   private refreshTimer?: number;
   private isRefreshing = false;
   private lastWeather = "";
+  private lastSnapshot?: WeatherSnapshot;
+  private iconAssetMap: Record<string, string> = {};
+  private iconAssetsLoaded = false;
   private keyInput!: HTMLInputElement;
   private citySearchInput!: HTMLInputElement;
   private cityPicker!: HTMLElement;
   private cityResultList!: HTMLElement;
   private selectedCity?: AmapCity;
   private intervalSelect!: HTMLSelectElement;
+  private showIconInput!: HTMLInputElement;
   private refreshButton!: HTMLButtonElement;
   private readonly repositionCityResults = (): void => {
     if (this.cityResultList?.style.display !== "none") {
@@ -122,6 +214,30 @@ export default class WeatherPlugin extends Plugin {
 
   onload(): void {
     this.createSetting();
+    this.protyleSlash = [
+      {
+        filter: ["天气", "weather", "tq"],
+        html: `<div class="b3-list-item__first"><span class="b3-list-item__text">${this.t(
+          "slash.weather",
+          "Weather"
+        )}</span></div>`,
+        id: "insertWeather",
+        callback: (protyle) => {
+          void this.insertWeatherIntoDoc(protyle, false);
+        }
+      },
+      {
+        filter: ["天气详细", "天气(详细)", "weather detail", "tqxx"],
+        html: `<div class="b3-list-item__first"><span class="b3-list-item__text">${this.t(
+          "slash.weatherDetail",
+          "Weather (detail)"
+        )}</span></div>`,
+        id: "insertWeatherDetail",
+        callback: (protyle) => {
+          void this.insertWeatherIntoDoc(protyle, true);
+        }
+      }
+    ];
   }
 
   onDataChanged(): void {}
@@ -280,6 +396,10 @@ export default class WeatherPlugin extends Plugin {
       this.intervalSelect.appendChild(option);
     });
 
+    this.showIconInput = document.createElement("input");
+    this.showIconInput.className = "b3-switch fn__flex-center";
+    this.showIconInput.type = "checkbox";
+
     this.refreshButton = document.createElement("button");
     this.refreshButton.className =
       "b3-button b3-button--outline fn__flex-center";
@@ -330,6 +450,14 @@ export default class WeatherPlugin extends Plugin {
       actionElement: this.intervalSelect
     });
     this.setting.addItem({
+      title: this.t("settings.showIcon.title", "Show weather icon"),
+      description: this.t(
+        "settings.showIcon.description",
+        "Show a weather icon to the left of the weather text in the status bar."
+      ),
+      actionElement: this.showIconInput
+    });
+    this.setting.addItem({
       title: this.t("settings.manual.title", "Manual refresh"),
       description: this.t(
         "settings.manual.description",
@@ -356,7 +484,11 @@ export default class WeatherPlugin extends Plugin {
           this.citiesByAdcode.has(savedConfig.city.trim())
             ? savedConfig.city.trim()
             : "",
-        intervalMinutes: this.normalizeInterval(savedConfig.intervalMinutes)
+        intervalMinutes: this.normalizeInterval(savedConfig.intervalMinutes),
+        showIcon:
+          typeof savedConfig.showIcon === "boolean"
+            ? savedConfig.showIcon
+            : true
       };
     } catch (error) {
       console.error(`[${this.name}] 加载天气配置失败`, error);
@@ -394,6 +526,7 @@ export default class WeatherPlugin extends Plugin {
     this.updateCityClearButton();
     this.hideCityResults();
     this.intervalSelect.value = String(this.config.intervalMinutes);
+    this.showIconInput.checked = this.config.showIcon;
   }
 
   private createStatusItem(): void {
@@ -407,7 +540,11 @@ export default class WeatherPlugin extends Plugin {
       "color: var(--b3-theme-on-surface)",
       "cursor: pointer",
       "height: 30px",
-      "padding: 0 8px"
+      "padding: 0 8px",
+      "font-size: 12px",
+      "display: flex",
+      "align-items: center",
+      "gap: 4px"
     ].join(";");
     statusItem.addEventListener("click", () => {
       if (this.hasValidConfig()) {
@@ -512,32 +649,16 @@ export default class WeatherPlugin extends Plugin {
       }
 
       this.lastWeather = weather;
-      const weatherTip = [
-        this.t("weather.weather", "Weather: {value}", { value: weather }),
-        live.temperature
-          ? this.t("weather.temperature", "Temperature: {value}°C", {
-              value: live.temperature
-            })
-          : "",
-        live.humidity
-          ? this.t("weather.humidity", "Humidity: {value}%", {
-              value: live.humidity
-            })
-          : "",
-        live.winddirection
-          ? this.t("weather.windDirection", "Wind direction: {value}", {
-              value: live.winddirection
-            })
-          : "",
-        live.windpower
-          ? this.t("weather.windPower", "Wind power: {value}", {
-              value: live.windpower
-            })
-          : ""
-      ]
-        .filter(Boolean)
-        .join("\n");
-      this.setStatus(weather, weatherTip);
+      const temperature = live.temperature?.trim() ?? "";
+      this.lastSnapshot = {
+        weather,
+        temperature,
+        humidity: live.humidity?.trim() ?? "",
+        winddirection: live.winddirection?.trim() ?? "",
+        windpower: live.windpower?.trim() ?? ""
+      };
+      const weatherTip = this.buildWeatherLines(this.lastSnapshot).join("\n");
+      this.setStatus(weather, weatherTip, weather, temperature);
     } catch (error) {
       console.error(`[${this.name}] 获取天气失败`, error);
       this.setStatus(
@@ -563,17 +684,173 @@ export default class WeatherPlugin extends Plugin {
     }
   }
 
-  private setStatus(text: string, label: string): void {
+  private setStatus(
+    text: string,
+    label: string,
+    weather?: string,
+    temperature?: string
+  ): void {
     if (!this.statusItem || !document.body.contains(this.statusItem)) {
       return;
     }
 
-    this.statusItem.textContent = text;
+    this.statusItem.replaceChildren();
+
+    if (weather && this.config.showIcon) {
+      const icon = document.createElement("img");
+      icon.src = this.getWeatherIconUrl(weather);
+      icon.width = 18;
+      icon.height = 18;
+      icon.alt = "";
+      icon.style.display = "block";
+      this.statusItem.appendChild(icon);
+    }
+
+    const textElement = document.createElement("span");
+    textElement.textContent = temperature
+      ? `${text} ${temperature}°C`
+      : text;
+    this.statusItem.appendChild(textElement);
     this.statusItem.setAttribute("aria-label", label);
+  }
+
+  private getWeatherIconFile(weather: string): string {
+    const iconName = WEATHER_ICON_MAP[weather] ?? "unknown";
+    return `weather-${iconName}.png`;
+  }
+
+  private getWeatherIconUrl(weather: string): string {
+    return `/plugins/${this.name}/icons/${this.getWeatherIconFile(weather)}`;
+  }
+
+  /**
+   * 把插件图标复制到工作区 assets/（去重），返回可随笔记同步的 assets 路径。
+   * 背景：/plugins/ 路径不参与思源同步，且被编辑器视为"网络图片"（带地球徽章）；
+   * assets/ 是笔记数据的一部分，跨设备同步不丢、无徽章。
+   */
+  private async ensureIconAsset(iconFile: string): Promise<string> {
+    if (!this.iconAssetsLoaded) {
+      this.iconAssetsLoaded = true;
+      try {
+        const saved = await this.loadData(ICON_ASSET_STORAGE);
+        if (saved && typeof saved === "object") {
+          this.iconAssetMap = saved as Record<string, string>;
+        }
+      } catch (error) {
+        console.error(`[${this.name}] 加载图标 assets 映射失败`, error);
+      }
+    }
+
+    const cached = this.iconAssetMap[iconFile];
+    if (cached) {
+      return cached;
+    }
+
+    const pluginUrl = `/plugins/${this.name}/icons/${iconFile}`;
+    const iconResponse = await fetch(pluginUrl);
+    if (!iconResponse.ok) {
+      throw new Error(`HTTP ${iconResponse.status}`);
+    }
+    const blob = await iconResponse.blob();
+
+    const formData = new FormData();
+    formData.append("assetsDirPath", "assets/");
+    formData.append("file[]", new File([blob], iconFile, { type: "image/png" }));
+
+    const uploadResult = await fetchSyncPost("/api/asset/upload", formData);
+    const assetPath = (
+      uploadResult?.data as { succMap?: Record<string, string> } | undefined
+    )?.succMap?.[iconFile];
+    if (!assetPath) {
+      throw new Error(uploadResult?.msg || "upload failed");
+    }
+
+    this.iconAssetMap[iconFile] = assetPath;
+    await this.saveData(ICON_ASSET_STORAGE, this.iconAssetMap);
+    return assetPath;
+  }
+
+  private buildWeatherLines(snapshot: WeatherSnapshot): string[] {
+    return [
+      this.t("weather.weather", "Weather: {value}", {
+        value: snapshot.weather
+      }),
+      snapshot.temperature
+        ? this.t("weather.temperature", "Temperature: {value}°C", {
+            value: snapshot.temperature
+          })
+        : "",
+      snapshot.humidity
+        ? this.t("weather.humidity", "Humidity: {value}%", {
+            value: snapshot.humidity
+          })
+        : "",
+      snapshot.winddirection
+        ? this.t("weather.windDirection", "Wind direction: {value}", {
+            value: snapshot.winddirection
+          })
+        : "",
+      snapshot.windpower
+        ? this.t("weather.windPower", "Wind power: {value}", {
+            value: snapshot.windpower
+          })
+        : ""
+    ].filter(Boolean);
+  }
+
+  private async insertWeatherIntoDoc(
+    protyle: Protyle,
+    detail: boolean
+  ): Promise<void> {
+    const snapshot = this.lastSnapshot;
+    if (!snapshot) {
+      showMessage(
+        this.t(
+          "messages.noWeatherToInsert",
+          "No weather data yet. Refresh the weather in the status bar first."
+        ),
+        5000,
+        "error"
+      );
+      return;
+    }
+
+    // 优先复制到 assets/（可同步、无网络图片徽章）；失败则回退插件路径（本机可见）
+    let iconUrl = this.getWeatherIconUrl(snapshot.weather);
+    try {
+      iconUrl = await this.ensureIconAsset(
+        this.getWeatherIconFile(snapshot.weather)
+      );
+    } catch (error) {
+      console.error(`[${this.name}] 图标复制到 assets 失败，回退插件路径`, error);
+    }
+
+    // 使用思源原生图片节点结构（与编辑器内复制粘贴图片一致），
+    // 直接写 <img> 会被 Lute 当作陌生 HTML 清洗掉
+    const iconHtml =
+      `<span data-type="img" class="img">` +
+      `<span class="img__protyle"></span>` +
+      `<img data-src="${iconUrl}" src="${iconUrl}" ` +
+      `style="width:18px;vertical-align:-3px;" />` +
+      `<span class="img__net"></span></span>`;
+    const summary = `${iconHtml}${snapshot.weather}${
+      snapshot.temperature ? ` ${snapshot.temperature}°C` : ""
+    }`;
+
+    if (!detail) {
+      protyle.insert(summary, false);
+      return;
+    }
+
+    // 详细版也用单段落行内插入（<br> 分行），不做多块插入——
+    // 多块插入会替换 slash 所在段落块，导致思源事务报 "block not found"
+    const lines = this.buildWeatherLines(snapshot).slice(1);
+    protyle.insert([summary, ...lines].join("<br>"), false);
   }
 
   private clearWeather(): void {
     this.lastWeather = "";
+    this.lastSnapshot = undefined;
     this.setStatus(
       this.t("status.unconfigured", "Weather not configured"),
       this.t(
@@ -587,7 +864,8 @@ export default class WeatherPlugin extends Plugin {
     return {
       key: this.keyInput.value.trim(),
       city: this.selectedCity?.adcode ?? "",
-      intervalMinutes: this.normalizeInterval(this.intervalSelect.value)
+      intervalMinutes: this.normalizeInterval(this.intervalSelect.value),
+      showIcon: this.showIconInput.checked
     };
   }
 
