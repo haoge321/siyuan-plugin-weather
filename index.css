@@ -3,3 +3,135 @@
 #weather-status.b3-tooltips::after {
   text-align: left;
 }
+
+/* ---------------------------------------------------------------------------
+ * 一、思源 v3.8.3 窄屏适配的修正
+ *
+ * 思源 v3.8.3 重构了 Setting 渲染（PR #19072「移除 config-wrap 并使所有配置项适配窄屏」）：
+ *   1. 设置项容器由旧的 .b3-label 变成 .b3-label.config-item，描述类名由
+ *      .b3-label__desc 改为 .b3-label__text，.config-wrap 已被移除；
+ *   2. 视口 ≤750px 时新增一组 .config-item > .b3-text-field / .b3-select /
+ *      .b3-button / .fn__size200 规则，把「直系子控件」强制改成
+ *      flex:1 1 100%; width:100%; margin-top:8px，同时隐藏 .fn__space。
+ *
+ * 也就是说窄屏下控件会被撑满整行、与本插件习惯的「左标题+描述、右控件」不符。
+ * 给控件加 weather-setting-control 类并覆盖 flex / margin-top 即可保持原布局。
+ * 刻意不改变 DOM 结构：若把控件包进 wrapper，思源对 actionElement 的原生绑定
+ * （如输入框内回车即触发表单保存）会失效。
+ * ------------------------------------------------------------------------- */
+/* 开关(.b3-switch)本身不在思源窄屏规则之列，排除它以免动到 flex-shrink */
+.config-item > .weather-setting-control:not(.b3-switch) {
+  flex: 0 1 auto;
+  margin-top: 0;
+}
+
+.config-item > .b3-text-field.weather-setting-control,
+.config-item > .b3-select.weather-setting-control,
+.config-item > .b3-button.weather-setting-control {
+  flex: 0 1 auto;
+  /* 覆盖思源为 actionElement 追加的 .fn__size200(200px)；input/select 由内联 260px 接管 */
+  width: auto;
+  max-width: 100%;
+  margin-top: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * 二、反制第三方插件泄漏的全局样式（让本插件设置面板对外部污染免疫）
+ *
+ * 背景：思源所有插件的设置面板都渲染成同一套结构
+ *   .b3-dialog__content > .config-item > [.fn__flex-1(标题+描述)] + [.fn__space] + [控件]
+ * 只要某个插件写了不带自身作用域的裸选择器（已知：siyuan-assets-manager），
+ * 就会把别人的设置面板一起改掉，例如：
+ *   .b3-dialog__content .config-item .b3-label__text { display:none!important }   ← 描述被隐藏
+ *   .b3-dialog__content .config-item { flex-direction:column!important; … }        ← 标题与控件被竖排
+ *
+ * 反制策略（两层保险）：
+ *   1. 特异性拉到 ID 级：选择器里带一个 :not(#\9)（\9 是未被使用的 ID），
+ *      使整条规则特异性达到 1-x-0。对方只要不使用 ID 选择器，无论写多长都压不过这里。
+ *   2. 覆盖面补齐：display / visibility / opacity / height / max-height / overflow /
+ *      position / order / font-size / color 一起复位，防止对方换别的手段隐藏。
+ * 同时用 :has() 精确圈定「含本插件控件的设置项」，不会波及思源自身或其它插件的面板。
+ *
+ * ⚠ 能力边界：这是对「非 ID 选择器 + 常规隐藏手段」的免疫，不是数学意义上的绝对免疫。
+ *   若对方动用 ID 选择器、或直接在 JS 里改 DOM 结构，仍需另行处理。
+ * ------------------------------------------------------------------------- */
+.b3-dialog__content .config-item:not(#\9):has(> .weather-setting-control) {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  grid-template-columns: none !important;
+  position: static !important;
+  padding: 16px 24px !important;
+  margin: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 标题 + 描述所在容器 */
+.b3-dialog__content .config-item:not(#\9):has(> .weather-setting-control) > .fn__flex-1 {
+  display: block !important;
+  flex: 1 !important;
+  order: 0 !important;
+  width: auto !important;
+  min-width: .1px !important;
+  max-width: none !important;
+  margin: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 设置项标题 */
+.b3-dialog__content .config-item:not(#\9):has(> .weather-setting-control) .config-name {
+  display: block !important;
+  order: 0 !important;
+  font-size: 15px !important;
+  font-weight: normal !important;
+  line-height: 20px !important;
+  margin: 0 !important;
+  color: var(--b3-theme-on-background) !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 设置项描述 */
+.b3-dialog__content .config-item:not(#\9):has(> .weather-setting-control) .b3-label__text {
+  display: block !important;
+  order: 0 !important;
+  position: static !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  margin: 4px 0 0 0 !important;
+  color: var(--b3-theme-on-surface) !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 标题区与控件之间的间隙 */
+.b3-dialog__content .config-item:not(#\9):has(> .weather-setting-control) > .fn__space {
+  display: inline-block !important;
+  width: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+/* 本插件控件自身：只防「被隐藏/被改序」，不改 display 以免破坏各控件类型 */
+.b3-dialog__content .config-item:not(#\9):has(> .weather-setting-control) > .weather-setting-control {
+  order: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}

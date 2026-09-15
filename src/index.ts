@@ -300,19 +300,25 @@ export default class WeatherPlugin extends Plugin {
 
   private createSetting(): void {
     this.keyInput = document.createElement("input");
-    this.keyInput.className = "b3-text-field fn__block";
+    this.keyInput.className =
+      "b3-text-field fn__block weather-setting-control";
     this.keyInput.type = "password";
     this.keyInput.autocomplete = "off";
     this.keyInput.placeholder = this.t(
       "settings.apiKey.placeholder",
       "Enter Amap Web Service API Key"
     );
+    // flex / margin-top 用内联写死，确保覆盖思源 v3.8.3 对 .config-item
+    // 直系子控件强制的 `flex:1 1 100%; margin-top:8px`（见 index.css 说明）
     this.keyInput.style.cssText =
-      `width:${SETTING_CONTROL_WIDTH};max-width:100%;box-sizing:border-box;`;
+      `width:${SETTING_CONTROL_WIDTH};max-width:100%;box-sizing:border-box;` +
+      "flex:0 1 auto;margin-top:0;";
 
     this.cityPicker = document.createElement("div");
+    this.cityPicker.className = "weather-setting-control";
     this.cityPicker.style.cssText =
-      `position:relative;width:${SETTING_CONTROL_WIDTH};max-width:100%;min-width:0;`;
+      `position:relative;width:${SETTING_CONTROL_WIDTH};max-width:100%;min-width:0;` +
+      "flex:0 1 auto;margin-top:0;";
 
     const cityInputWrapper = document.createElement("div");
     cityInputWrapper.className = "fn__flex";
@@ -382,9 +388,11 @@ export default class WeatherPlugin extends Plugin {
     );
 
     this.intervalSelect = document.createElement("select");
-    this.intervalSelect.className = "b3-select fn__block";
+    this.intervalSelect.className =
+      "b3-select fn__block weather-setting-control";
     this.intervalSelect.style.cssText =
-      `width:${SETTING_CONTROL_WIDTH};max-width:100%;box-sizing:border-box;`;
+      `width:${SETTING_CONTROL_WIDTH};max-width:100%;box-sizing:border-box;` +
+      "flex:0 1 auto;margin-top:0;";
     REFRESH_INTERVAL_OPTIONS.forEach((minutes) => {
       const option = document.createElement("option");
       option.value = String(minutes);
@@ -397,13 +405,18 @@ export default class WeatherPlugin extends Plugin {
     });
 
     this.showIconInput = document.createElement("input");
-    this.showIconInput.className = "b3-switch fn__flex-center";
+    // 也带 weather-setting-control：开关本身不受思源窄屏规则影响，
+    // 加这个类是为了让 index.css 的反制选择器能定位到「本插件的这个设置项」
+    this.showIconInput.className =
+      "b3-switch fn__flex-center weather-setting-control";
     this.showIconInput.type = "checkbox";
 
     this.refreshButton = document.createElement("button");
     this.refreshButton.className =
-      "b3-button b3-button--outline fn__flex-center";
+      "b3-button b3-button--outline fn__flex-center weather-setting-control";
     this.refreshButton.type = "button";
+    // width:auto 覆盖思源追加的 .fn__size200(200px)，按钮按内容自适应
+    this.refreshButton.style.cssText = "width:auto;flex:0 1 auto;margin-top:0;";
     this.refreshButton.innerHTML =
       `<svg class="b3-button__icon"><use xlink:href="#iconRefresh"></use></svg><span>${this.t(
         "actions.refresh",
@@ -429,6 +442,8 @@ export default class WeatherPlugin extends Plugin {
         "settings.apiKey.description",
         'The Amap Web Service API key used for weather requests. <a href="https://www.showdoc.com.cn/siyuanPluginWeather/11559060627523622" target="_blank" rel="noopener noreferrer">View guide</a>'
       ),
+      // 控件带 weather-setting-control 类：index.css 用它圈定「本插件的设置项」，
+      // 用于反制第三方插件泄漏的全局样式，并修正思源 v3.8.3 的窄屏规则，详见 index.css
       actionElement: this.keyInput
     });
     this.setting.addItem({
@@ -455,6 +470,9 @@ export default class WeatherPlugin extends Plugin {
         "settings.showIcon.description",
         "Show a weather icon to the left of the weather text in the status bar."
       ),
+      // 开关保持直系子元素、不包 wrapper：思源靠 actionElement 是否带 b3-switch 类
+      // 决定容器渲染成 <label>（点整行可切换），包一层会丢掉这个语义。
+      // 它带 weather-setting-control 类，仅用于让 index.css 的反制选择器定位到本设置项。
       actionElement: this.showIconInput
     });
     this.setting.addItem({
